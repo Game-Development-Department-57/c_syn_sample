@@ -128,26 +128,74 @@ int vectorWrite(Vector vec, void* buf, SoundSampleUnit size)
   return 0;
 }
 
-//analyzer
+//score
+#define BINARYSCORE_PAGE_NUM  1024
+#define BINARYSCORE_PAGE_SIZE 2048
 typedef struct tagBINARYSCORE
 {
   uint8_t opecode;
   uint8_t arg[3];
 } BINARYSCORE, BinaryScore;
-static BinaryScore score;
+static BinaryScore *score[BINARYSCORE_PAGE_NUM];
+static int score_page_num;
+static int score_wrote_num;
+int bsNewPage(void)
+{
+  if (score_page_num >= BINARYSCORE_PAGE_NUM) return -1;
+  BinaryScore *p = malloc(sizeof(BinaryScore) * BINARYSCORE_PAGE_SIZE);
+  if (p == NULL) return -1;
+  score[score_page_num] = p;
+  score_page_num++;
+  return 0;
+}
+int bsFini(void)
+{
+  for (int i = 0; i < BINARYSCORE_PAGE_NUM; i++)
+  {
+    free(score[i]);
+    score[i] = NULL;
+  }
+  score_page_num = 0;
+  score_wrote_size = 0;
+  return 0;
+}
+int bsInit(void)
+{
+  bsFini();
+  return bsNewPage();
+}
+int bsWrite(BinaryScore bs)
+{
+  if ((score_wrote_size % BINARYSCORE_PAGE_SIZE) == 0) 
+    if(bsNewPage()) 
+      return -1;
+  score[score_wrote_size / BINARYSCORE_PAGE_SIZE][score_wrote_size % BINARYSCORE_PAGE_SIZE] = bs;
+  score_wrote_size++;
+  return 0;
+}
+
+//analyzer
+int isSystemChar(char c)
+{
+  return (c == ';') || (c == '@')
+}
 int analyzerRun(const char* filename)
 {
   if (filename == NULL) return -1;
   FILE* fp = fopen(filename, "rb");
   if (fp == NULL) return -1;
   
-  int counter = 0;
   BinaryScore bs;
+  int beat, meter;
+  if (fscanf(fp, "%d,%d;", &beat, &meter) == EOF) return -1;
+  ;
   while(feof(fp))
   {
-    char c = fgetc(fp);
-    if (c==EOF) {return -1}; //
-    
-    bs.opecode = c;
+    char sound, octave, length
+    char c;
+    c = fgetc(fp);
+    if (c == '[') isChord = 1;
+    if (c == ']') isChord = 0;
+    if (fscanf(fp, "%c%c%c", &sound, &octave, &length) == EOF) return -1;
   }
 }
